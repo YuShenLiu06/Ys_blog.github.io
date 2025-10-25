@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<rss xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/" version="2.0"><channel><title>Ys的博客</title><link>https://YuShenLiu06.github.io/Ys_blog.github.io</link><description>判天地之美，析万物之理</description><copyright>Ys的博客</copyright><docs>http://www.rssboard.org/rss-specification</docs><generator>python-feedgen</generator><image><url>https://github.githubassets.com/favicons/favicon.svg</url><title>avatar</title><link>https://YuShenLiu06.github.io/Ys_blog.github.io</link></image><lastBuildDate>Fri, 24 Oct 2025 16:26:42 +0000</lastBuildDate><managingEditor>Ys的博客</managingEditor><ttl>60</ttl><webMaster>Ys的博客</webMaster><item><title>XXT</title><link>https://YuShenLiu06.github.io/Ys_blog.github.io/post/XXT.html</link><description># 学习通任务点完成逻辑以及分析(这里仅对任务过程分析)
+<rss xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/" version="2.0"><channel><title>Ys的博客</title><link>https://YuShenLiu06.github.io/Ys_blog.github.io</link><description>判天地之美，析万物之理</description><copyright>Ys的博客</copyright><docs>http://www.rssboard.org/rss-specification</docs><generator>python-feedgen</generator><image><url>https://github.githubassets.com/favicons/favicon.svg</url><title>avatar</title><link>https://YuShenLiu06.github.io/Ys_blog.github.io</link></image><lastBuildDate>Sat, 25 Oct 2025 07:52:14 +0000</lastBuildDate><managingEditor>Ys的博客</managingEditor><ttl>60</ttl><webMaster>Ys的博客</webMaster><item><title>XXT</title><link>https://YuShenLiu06.github.io/Ys_blog.github.io/post/XXT.html</link><description># 学习通任务点完成逻辑以及分析(这里仅对任务过程分析)
 
 待办
 
@@ -17,7 +17,40 @@
 ## 我们应当如何应对
 
 1. 首先要对应过硬知识，在不理解这个专业/行业使用AI的过程中，小型任务尚且可以，但是在面临大型和复杂任务过程中，人也是关键一环
-2. 代码也不能纯粹依赖ai，但是小的代码片段，建议，补全AI还是很好用的。</description><guid isPermaLink="true">https://YuShenLiu06.github.io/Ys_blog.github.io/post/XXT.html</guid><pubDate>Fri, 24 Oct 2025 06:45:02 +0000</pubDate></item><item><title>关于在cent os7.6服务器版本使用mcdr启动我的世界服器 的复盘</title><link>https://YuShenLiu06.github.io/Ys_blog.github.io/post/guan-yu-zai-cent%20os7.6-fu-wu-qi-ban-ben-shi-yong-mcdr-qi-dong-wo-de-shi-jie-fu-qi-%20-de-fu-pan.html</link><description># 使用cent  os7.6搭建我的世界MCDR服务器
+2. 代码也不能纯粹依赖ai，但是小的代码片段，建议，补全AI还是很好用的。</description><guid isPermaLink="true">https://YuShenLiu06.github.io/Ys_blog.github.io/post/XXT.html</guid><pubDate>Fri, 24 Oct 2025 06:45:02 +0000</pubDate></item><item><title>在CentOs中安装MCDR与MCSM</title><link>https://YuShenLiu06.github.io/Ys_blog.github.io/post/zai-CentOs-zhong-an-zhuang-MCDR-yu-MCSM.html</link><description># 在cent os 7.6中安装mcdr和mcsm
+
+## 安装并配置mcsm
+
+在控制台执行这一串指令`sudo su -c 'wget -qO- https://script.mcsmanager.com/setup_cn.sh | bash' `下载mcsm
+
+## 1.下载并配置我的世界服务端（如果你已经有了服务端，则可以忽略）
+
+## 2.下载轩辕镜像到服务器上
+
+使用指令`bash &lt;(wget -qO- https://xuanyuan.cloud/docker.sh)`安装轩辕镜像，并且安装docker
+
+同时去[官网](https://docker.xuanyuan.me/)注册，有条件的可以充7块钱买流量包，也可以直接使用免费的镜像加速
+
+## 3.安装docker镜像
+
+mcdr的docker的image源 `mcdreforged/mcdreforged-corretto:latest`
+
+在你的docker界面上搜索该镜像，然后使用对应的pull指令
+
+&gt; 如果无法连接，去服务器提供商出打开8080端口
+
+## 4. 在mcsm上应用该镜像和初始化mcdr
+
+1. 在mcsm点击新建应用（选不选mc都一样）可以选择压缩包上传服务端压缩包，
+2. 在实例中点击应用实例设置
+3. 启动命令输入 `mcdreforged init`
+4. 容器化-&gt;打开端口25565 
+5. 选择我们刚刚pull下来的docker image 
+6. 点击运行实例
+7. 将服务器主体文件转移进刚刚创建的文件夹server下
+8.  `config.yml`配置 `star-command` 为你的启动指令
+
+## 安装完毕，恭喜🎉。</description><guid isPermaLink="true">https://YuShenLiu06.github.io/Ys_blog.github.io/post/zai-CentOs-zhong-an-zhuang-MCDR-yu-MCSM.html</guid><pubDate>Fri, 24 Oct 2025 06:37:03 +0000</pubDate></item><item><title>关于在cent os7.6服务器版本使用mcdr启动我的世界服器 的复盘</title><link>https://YuShenLiu06.github.io/Ys_blog.github.io/post/guan-yu-zai-cent%20os7.6-fu-wu-qi-ban-ben-shi-yong-mcdr-qi-dong-wo-de-shi-jie-fu-qi-%20-de-fu-pan.html</link><description># 使用cent  os7.6搭建我的世界MCDR服务器
 
  _坐牢是真几把坐牢_
 
