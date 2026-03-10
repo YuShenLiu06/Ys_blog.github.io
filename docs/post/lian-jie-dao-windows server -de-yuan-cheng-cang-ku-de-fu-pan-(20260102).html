@@ -23,7 +23,7 @@
 <meta property="og:url" content="https://YuShenLiu06.github.io/Ys_blog.github.io/post/lian-jie-dao-windows%20server%20-de-yuan-cheng-cang-ku-de-fu-pan-%2820260102%29.html">
 <meta property="og:image" content="https://github.githubassets.com/favicons/favicon.svg">
 <title>链接到windows server 的远程仓库的复盘(20260102)</title>
-<link href="//unpkg.com/@wooorm/starry-night@2.1.1/style/both.css" rel="stylesheet" />
+
 
 
 </head>
@@ -119,24 +119,28 @@ body{box-sizing: border-box;min-width: 200px;max-width: 900px;margin: 20px auto;
 <ol>
 <li>本地用非交互 SSH 验证远端能运行 git：</li>
 </ol>
-<div class="highlight highlight-source-powershell"><pre class="notranslate">ssh <span class="pl-k">-</span>p <span class="pl-c1">8307</span> Administrator<span class="pl-smi">@mc<span class="pl-smi">.5201314.vin</span></span> <span class="pl-s"><span class="pl-pds">"</span>git --version<span class="pl-pds">"</span></span></pre></div>
+<pre lang="powershell" class="notranslate"><code class="notranslate">ssh -p 8307 Administrator@mc.5201314.vin "git --version"
+</code></pre>
 <ol start="2">
 <li>在服务器仓库目录确认工作树：</li>
 </ol>
-<div class="highlight highlight-source-batchfile"><pre class="notranslate"><span class="pl-k">cd</span> /d <span class="pl-s"><span class="pl-pds">"</span>D:\McServer\...path...\plugins<span class="pl-pds">"</span></span>
-<span class="pl-k">dir</span> <span class="pl-s"><span class="pl-pds">"</span>.git<span class="pl-pds">"</span></span> /a
+<pre lang="cmd" class="notranslate"><code class="notranslate">cd /d "D:\McServer\...path...\plugins"
+dir ".git" /a
 git rev-parse --is-inside-work-tree
 git rev-parse --show-toplevel
-git status</pre></div>
+git status
+</code></pre>
 <ol start="3">
 <li>在本地测试远端引用（最先简单读 refs）：</li>
 </ol>
-<div class="highlight highlight-source-powershell"><pre class="notranslate">ssh <span class="pl-k">-</span>p <span class="pl-c1">8307</span> Administrator<span class="pl-smi">@mc<span class="pl-smi">.5201314.vin</span></span> <span class="pl-s"><span class="pl-pds">'</span>git ls-remote "D:/McServer/.../plugins"<span class="pl-pds">'</span></span></pre></div>
+<pre lang="powershell" class="notranslate"><code class="notranslate">ssh -p 8307 Administrator@mc.5201314.vin 'git ls-remote "D:/McServer/.../plugins"'
+</code></pre>
 <ol start="4">
 <li>观察 <code class="notranslate">git clone</code> 失败时 ssh 发送的远端命令（启用 SSH 调试）：</li>
 </ol>
-<div class="highlight highlight-source-powershell"><pre class="notranslate"><span class="pl-smi">$<span class="pl-c1">env:</span>GIT_SSH_COMMAND</span> <span class="pl-k">=</span> <span class="pl-s"><span class="pl-pds">'</span>ssh -vvv -p 8307<span class="pl-pds">'</span></span>
-git clone <span class="pl-s"><span class="pl-pds">"</span>ssh://Administrator@mc.5201314.vin/D:/.../plugins<span class="pl-pds">"</span></span> plugins<span class="pl-k">-</span>debug</pre></div>
+<pre lang="powershell" class="notranslate"><code class="notranslate">$env:GIT_SSH_COMMAND = 'ssh -vvv -p 8307'
+git clone "ssh://Administrator@mc.5201314.vin/D:/.../plugins" plugins-debug
+</code></pre>
 <ul>
 <li>从 ssh -vvv 日志可以看到服务端实际执行的命令（如 <code class="notranslate">git-upload-pack '/D:/...'</code>）。</li>
 </ul>
@@ -170,51 +174,56 @@ CALL: "C:\Program Files\Git\cmd\git.exe" upload-pack "D:/McServer/.../plugins" D
 <li>目的：确保无论客户端如何 quoting，最终传给 <code class="notranslate">git-upload-pack</code> 的都是一个正确的 Windows 路径参数。</li>
 </ul>
 <p>修复脚本（在服务器以管理员 PowerShell 写入）：</p>
-<div class="highlight highlight-source-powershell"><pre class="notranslate"><span class="pl-smi">$wrapperPath</span> <span class="pl-k">=</span> <span class="pl-s"><span class="pl-pds">'</span>C:\Windows\System32\OpenSSH\git-upload-pack.cmd<span class="pl-pds">'</span></span>
-<span class="pl-smi">$script</span> <span class="pl-k">=</span> <span class="pl-s"><span class="pl-pds">@'</span></span>
-<span class="pl-s">@echo off</span>
-<span class="pl-s">if "%~1"=="" (</span>
-<span class="pl-s">  "C:\Program Files\Git\cmd\git.exe" upload-pack</span>
-<span class="pl-s">  exit /b %ERRORLEVEL%</span>
-<span class="pl-s">)</span>
-<span class="pl-s">set FIRST=%~1</span>
-<span class="pl-s">if "%FIRST:~0,1%"=="'" set FIRST=%FIRST:~1%</span>
-<span class="pl-s">if "%FIRST:~-1%"=="'" set FIRST=%FIRST:~0,-1%</span>
-<span class="pl-s">if "%FIRST:~0,1%"=="/" set FIRST=%FIRST:~1%</span>
-<span class="pl-s">"C:\Program Files\Git\cmd\git.exe" upload-pack "%FIRST%"</span>
-<span class="pl-s">exit /b %ERRORLEVEL%</span>
-<span class="pl-s"><span class="pl-pds">'@</span></span>
-<span class="pl-c1">Set-Content</span> <span class="pl-k">-</span>Path <span class="pl-smi">$wrapperPath</span> <span class="pl-k">-</span>Value <span class="pl-smi">$script</span> <span class="pl-k">-</span>Encoding ASCII <span class="pl-k">-</span>Force
-icacls <span class="pl-smi">$wrapperPath</span> <span class="pl-k">/</span>grant <span class="pl-s"><span class="pl-pds">'</span>Administrators:RX<span class="pl-pds">'</span></span></pre></div>
+<pre lang="powershell" class="notranslate"><code class="notranslate">$wrapperPath = 'C:\Windows\System32\OpenSSH\git-upload-pack.cmd'
+$script = @'
+@echo off
+if "%~1"=="" (
+  "C:\Program Files\Git\cmd\git.exe" upload-pack
+  exit /b %ERRORLEVEL%
+)
+set FIRST=%~1
+if "%FIRST:~0,1%"=="'" set FIRST=%FIRST:~1%
+if "%FIRST:~-1%"=="'" set FIRST=%FIRST:~0,-1%
+if "%FIRST:~0,1%"=="/" set FIRST=%FIRST:~1%
+"C:\Program Files\Git\cmd\git.exe" upload-pack "%FIRST%"
+exit /b %ERRORLEVEL%
+'@
+Set-Content -Path $wrapperPath -Value $script -Encoding ASCII -Force
+icacls $wrapperPath /grant 'Administrators:RX'
+</code></pre>
 <p>B. 根本/长期建议（可选）</p>
 <ul>
 <li>将 OpenSSH 的默认 shell 改为 PowerShell（通过注册表），因为 PowerShell 会正确解析单引号等，避免已有 quoting 的兼容性问题：</li>
 </ul>
-<div class="highlight highlight-source-powershell"><pre class="notranslate"><span class="pl-c1">New-Item</span> <span class="pl-k">-</span>Path <span class="pl-s"><span class="pl-pds">'</span>HKLM:\SOFTWARE\OpenSSH<span class="pl-pds">'</span></span> <span class="pl-k">-</span>Force <span class="pl-k">|</span> <span class="pl-c1">Out-Null</span>
-<span class="pl-c1">Set-ItemProperty</span> <span class="pl-k">-</span>Path <span class="pl-s"><span class="pl-pds">'</span>HKLM:\SOFTWARE\OpenSSH<span class="pl-pds">'</span></span> <span class="pl-k">-</span>Name DefaultShell <span class="pl-k">-</span>Value <span class="pl-s"><span class="pl-pds">'</span>C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe<span class="pl-pds">'</span></span>
-<span class="pl-c1">Restart-Service</span> sshd</pre></div>
+<pre lang="powershell" class="notranslate"><code class="notranslate">New-Item -Path 'HKLM:\SOFTWARE\OpenSSH' -Force | Out-Null
+Set-ItemProperty -Path 'HKLM:\SOFTWARE\OpenSSH' -Name DefaultShell -Value 'C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe'
+Restart-Service sshd
+</code></pre>
 <ul>
 <li>或者：在服务器上创建并维护一个裸仓库作为远端（<code class="notranslate">plugins.git</code>），客户端直接 clone 裸仓库可避免工作树路径解析差异：</li>
 </ul>
-<div class="highlight highlight-source-powershell"><pre class="notranslate">mkdir D:\gitrepos
-git clone <span class="pl-k">--</span>bare <span class="pl-s"><span class="pl-pds">"</span>D:\McServer\...plugins<span class="pl-pds">"</span></span> <span class="pl-s"><span class="pl-pds">"</span>D:\gitrepos\plugins.git<span class="pl-pds">"</span></span>
-<span class="pl-c"><span class="pl-c">#</span> 本地 clone:</span>
-git clone <span class="pl-s"><span class="pl-pds">"</span>ssh://Administrator@mc.5201314.vin:8307/D:/gitrepos/plugins.git<span class="pl-pds">"</span></span> plugins<span class="pl-k">-</span>local</pre></div>
+<pre lang="powershell" class="notranslate"><code class="notranslate">mkdir D:\gitrepos
+git clone --bare "D:\McServer\...plugins" "D:\gitrepos\plugins.git"
+# 本地 clone:
+git clone "ssh://Administrator@mc.5201314.vin:8307/D:/gitrepos/plugins.git" plugins-local
+</code></pre>
 <p>C. 权限/路径检查（用于排除权限问题）</p>
 <ul>
 <li>确认 SSH 登录用户对仓库目录和 wrapper 有读取/执行权限：</li>
 </ul>
-<div class="highlight highlight-source-powershell"><pre class="notranslate">icacls <span class="pl-s"><span class="pl-pds">"</span>D:\McServer\...plugins<span class="pl-pds">"</span></span>
-icacls <span class="pl-s"><span class="pl-pds">"</span>C:\Windows\System32\OpenSSH\git-upload-pack.cmd<span class="pl-pds">"</span></span></pre></div>
+<pre lang="powershell" class="notranslate"><code class="notranslate">icacls "D:\McServer\...plugins"
+icacls "C:\Windows\System32\OpenSSH\git-upload-pack.cmd"
+</code></pre>
 <hr>
 <h2>五、验证（How we verified）</h2>
 <ul>
 <li>使用诊断 wrapper 记录并查看了传入参数，确认输入被正确规范化且 wrapper 只将单个路径参数传给 git。</li>
 <li>本地使用 scp 风格路径并设置临时 <code class="notranslate">GIT_SSH_COMMAND</code> 成功 clone：</li>
 </ul>
-<div class="highlight highlight-source-powershell"><pre class="notranslate"><span class="pl-smi">$<span class="pl-c1">env:</span>GIT_SSH_COMMAND</span> <span class="pl-k">=</span> <span class="pl-s"><span class="pl-pds">'</span>ssh -p 8307<span class="pl-pds">'</span></span>
-git clone <span class="pl-s"><span class="pl-pds">"</span>Administrator@mc.5201314.vin:D:/McServer/.../plugins<span class="pl-pds">"</span></span> plugins<span class="pl-k">-</span>local
-<span class="pl-c1">Remove-Item</span> Env:GIT_SSH_COMMAND</pre></div>
+<pre lang="powershell" class="notranslate"><code class="notranslate">$env:GIT_SSH_COMMAND = 'ssh -p 8307'
+git clone "Administrator@mc.5201314.vin:D:/McServer/.../plugins" plugins-local
+Remove-Item Env:GIT_SSH_COMMAND
+</code></pre>
 <ul>
 <li>也通过直接触发远端 <code class="notranslate">git-upload-pack</code> 来确认 wrapper 返回了协议数据（非错误文本）。</li>
 </ul>
@@ -226,9 +235,10 @@ git clone <span class="pl-s"><span class="pl-pds">"</span>Administrator@mc.52013
 <p>基本确认（服务器端）</p>
 <ul>
 <li>在仓库目录执行：
-<div class="highlight highlight-source-shell"><pre class="notranslate">git rev-parse --is-inside-work-tree
+<pre lang="bash" class="notranslate"><code class="notranslate">git rev-parse --is-inside-work-tree
 git status
-dir .git /a</pre></div>
+dir .git /a
+</code></pre>
 </li>
 <li>在服务器交互 shell（或 VSCode Remote）能正常运行说明仓库存在。</li>
 </ul>
@@ -237,8 +247,9 @@ dir .git /a</pre></div>
 <p>验证非交互环境能否运行 git</p>
 <ul>
 <li>本地：
-<div class="highlight highlight-source-powershell"><pre class="notranslate">ssh <span class="pl-k">-</span>p <span class="pl-k">&lt;</span>port<span class="pl-k">&gt;</span> user<span class="pl-smi">@host</span> <span class="pl-s"><span class="pl-pds">"</span>git --version<span class="pl-pds">"</span></span>
-ssh <span class="pl-k">-</span>p <span class="pl-k">&lt;</span>port<span class="pl-k">&gt;</span> user<span class="pl-smi">@host</span> <span class="pl-s"><span class="pl-pds">'</span>powershell -NoProfile -Command "(Get-Command git).Source"<span class="pl-pds">'</span></span></pre></div>
+<pre lang="powershell" class="notranslate"><code class="notranslate">ssh -p &lt;port&gt; user@host "git --version"
+ssh -p &lt;port&gt; user@host 'powershell -NoProfile -Command "(Get-Command git).Source"'
+</code></pre>
 </li>
 <li>若 <code class="notranslate">git --version</code> 报错或找不到 git：检查系统 PATH（机器层 vs 用户层），并重启 sshd 服务（或把 Git 路径写入机器 PATH 并重启 sshd）。</li>
 </ul>
@@ -247,7 +258,8 @@ ssh <span class="pl-k">-</span>p <span class="pl-k">&lt;</span>port<span class="
 <p>测试远端引用（轻量）</p>
 <ul>
 <li>本地运行：
-<div class="highlight highlight-source-powershell"><pre class="notranslate">ssh <span class="pl-k">-</span>p <span class="pl-k">&lt;</span>port<span class="pl-k">&gt;</span> user<span class="pl-smi">@host</span> <span class="pl-s"><span class="pl-pds">'</span>git ls-remote "D:/path/to/repo"<span class="pl-pds">'</span></span></pre></div>
+<pre lang="powershell" class="notranslate"><code class="notranslate">ssh -p &lt;port&gt; user@host 'git ls-remote "D:/path/to/repo"'
+</code></pre>
 </li>
 <li>若可列出 refs，说明 git-upload-pack 在远端能工作（可以进一步 debug clone 阶段的 quoting/参数问题）。</li>
 </ul>
@@ -256,10 +268,11 @@ ssh <span class="pl-k">-</span>p <span class="pl-k">&lt;</span>port<span class="
 <p>打开详细日志进行定位</p>
 <ul>
 <li>在本地设置详细 ssh/git trace：
-<div class="highlight highlight-source-powershell"><pre class="notranslate"><span class="pl-smi">$<span class="pl-c1">env:</span>GIT_SSH_COMMAND</span><span class="pl-k">=</span><span class="pl-s"><span class="pl-pds">'</span>ssh -vvv -p &lt;port&gt;<span class="pl-pds">'</span></span>
-<span class="pl-smi">$<span class="pl-c1">env:</span>GIT_TRACE</span><span class="pl-k">=</span><span class="pl-c1">1</span>
-<span class="pl-smi">$<span class="pl-c1">env:</span>GIT_TRACE_PACKET</span><span class="pl-k">=</span><span class="pl-c1">1</span>
-git clone <span class="pl-s"><span class="pl-pds">"</span>ssh://user@host/D:/path/to/repo<span class="pl-pds">"</span></span> repo<span class="pl-k">-</span>debug</pre></div>
+<pre lang="powershell" class="notranslate"><code class="notranslate">$env:GIT_SSH_COMMAND='ssh -vvv -p &lt;port&gt;'
+$env:GIT_TRACE=1
+$env:GIT_TRACE_PACKET=1
+git clone "ssh://user@host/D:/path/to/repo" repo-debug
+</code></pre>
 </li>
 <li>查看 ssh 日志中 “Sending command:” 行，确定远端运行的 <code class="notranslate">git-upload-pack</code> 的参数格式（是否带前导斜杠或单引号）。</li>
 </ul>
@@ -309,22 +322,23 @@ git clone <span class="pl-s"><span class="pl-pds">"</span>ssh://user@host/D:/pat
 <ul>
 <li>创建修正 wrapper（服务器，管理员 PowerShell）：</li>
 </ul>
-<div class="highlight highlight-source-powershell"><pre class="notranslate"><span class="pl-smi">$wrapperPath</span> <span class="pl-k">=</span> <span class="pl-s"><span class="pl-pds">'</span>C:\Windows\System32\OpenSSH\git-upload-pack.cmd<span class="pl-pds">'</span></span>
-<span class="pl-smi">$script</span> <span class="pl-k">=</span> <span class="pl-s"><span class="pl-pds">@'</span></span>
-<span class="pl-s">@echo off</span>
-<span class="pl-s">if "%~1"=="" (</span>
-<span class="pl-s">  "C:\Program Files\Git\cmd\git.exe" upload-pack</span>
-<span class="pl-s">  exit /b %ERRORLEVEL%</span>
-<span class="pl-s">)</span>
-<span class="pl-s">set FIRST=%~1</span>
-<span class="pl-s">if "%FIRST:~0,1%"=="'" set FIRST=%FIRST:~1%</span>
-<span class="pl-s">if "%FIRST:~-1%"=="'" set FIRST=%FIRST:~0,-1%</span>
-<span class="pl-s">if "%FIRST:~0,1%"=="/" set FIRST=%FIRST:~1%</span>
-<span class="pl-s">"C:\Program Files\Git\cmd\git.exe" upload-pack "%FIRST%"</span>
-<span class="pl-s">exit /b %ERRORLEVEL%</span>
-<span class="pl-s"><span class="pl-pds">'@</span></span>
-<span class="pl-c1">Set-Content</span> <span class="pl-k">-</span>Path <span class="pl-smi">$wrapperPath</span> <span class="pl-k">-</span>Value <span class="pl-smi">$script</span> <span class="pl-k">-</span>Encoding ASCII <span class="pl-k">-</span>Force
-icacls <span class="pl-smi">$wrapperPath</span> <span class="pl-k">/</span>grant <span class="pl-s"><span class="pl-pds">'</span>Administrators:RX<span class="pl-pds">'</span></span></pre></div>
+<pre lang="powershell" class="notranslate"><code class="notranslate">$wrapperPath = 'C:\Windows\System32\OpenSSH\git-upload-pack.cmd'
+$script = @'
+@echo off
+if "%~1"=="" (
+  "C:\Program Files\Git\cmd\git.exe" upload-pack
+  exit /b %ERRORLEVEL%
+)
+set FIRST=%~1
+if "%FIRST:~0,1%"=="'" set FIRST=%FIRST:~1%
+if "%FIRST:~-1%"=="'" set FIRST=%FIRST:~0,-1%
+if "%FIRST:~0,1%"=="/" set FIRST=%FIRST:~1%
+"C:\Program Files\Git\cmd\git.exe" upload-pack "%FIRST%"
+exit /b %ERRORLEVEL%
+'@
+Set-Content -Path $wrapperPath -Value $script -Encoding ASCII -Force
+icacls $wrapperPath /grant 'Administrators:RX'
+</code></pre>
 <ul>
 <li>
 <p>诊断 wrapper（用于记录 wrapper 参数）示例（写入 <code class="notranslate">C:\Temp\git-upload-pack-args.log</code>，用于调试）——已在排查阶段使用过（参见上文日志）。</p>
@@ -333,22 +347,25 @@ icacls <span class="pl-smi">$wrapperPath</span> <span class="pl-k">/</span>grant
 <p>将 OpenSSH DefaultShell 改为 PowerShell（如果决定长期更改）：</p>
 </li>
 </ul>
-<div class="highlight highlight-source-powershell"><pre class="notranslate"><span class="pl-c1">New-Item</span> <span class="pl-k">-</span>Path <span class="pl-s"><span class="pl-pds">'</span>HKLM:\SOFTWARE\OpenSSH<span class="pl-pds">'</span></span> <span class="pl-k">-</span>Force <span class="pl-k">|</span> <span class="pl-c1">Out-Null</span>
-<span class="pl-c1">Set-ItemProperty</span> <span class="pl-k">-</span>Path <span class="pl-s"><span class="pl-pds">'</span>HKLM:\SOFTWARE\OpenSSH<span class="pl-pds">'</span></span> <span class="pl-k">-</span>Name DefaultShell <span class="pl-k">-</span>Value <span class="pl-s"><span class="pl-pds">'</span>C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe<span class="pl-pds">'</span></span>
-<span class="pl-c1">Restart-Service</span> sshd</pre></div>
+<pre lang="powershell" class="notranslate"><code class="notranslate">New-Item -Path 'HKLM:\SOFTWARE\OpenSSH' -Force | Out-Null
+Set-ItemProperty -Path 'HKLM:\SOFTWARE\OpenSSH' -Name DefaultShell -Value 'C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe'
+Restart-Service sshd
+</code></pre>
 <ul>
 <li>在本地用 scp 风格 clone（避免 ssh:// 引起的前导斜杠问题）：</li>
 </ul>
-<div class="highlight highlight-source-powershell"><pre class="notranslate"><span class="pl-smi">$<span class="pl-c1">env:</span>GIT_SSH_COMMAND</span> <span class="pl-k">=</span> <span class="pl-s"><span class="pl-pds">'</span>ssh -p 8307<span class="pl-pds">'</span></span>
-git clone <span class="pl-s"><span class="pl-pds">"</span>Administrator@mc.5201314.vin:D:/McServer/.../plugins<span class="pl-pds">"</span></span> plugins<span class="pl-k">-</span>local
-<span class="pl-c1">Remove-Item</span> Env:GIT_SSH_COMMAND</pre></div>
+<pre lang="powershell" class="notranslate"><code class="notranslate">$env:GIT_SSH_COMMAND = 'ssh -p 8307'
+git clone "Administrator@mc.5201314.vin:D:/McServer/.../plugins" plugins-local
+Remove-Item Env:GIT_SSH_COMMAND
+</code></pre>
 <ul>
 <li>创建裸仓库（备用）：</li>
 </ul>
-<div class="highlight highlight-source-powershell"><pre class="notranslate">mkdir D:\gitrepos
-git clone <span class="pl-k">--</span>bare <span class="pl-s"><span class="pl-pds">"</span>D:\McServer\...plugins<span class="pl-pds">"</span></span> <span class="pl-s"><span class="pl-pds">"</span>D:\gitrepos\plugins.git<span class="pl-pds">"</span></span>
-<span class="pl-c"><span class="pl-c">#</span> 然后本地：</span>
-git clone <span class="pl-s"><span class="pl-pds">"</span>ssh://Administrator@mc.5201314.vin:8307/D:/gitrepos/plugins.git<span class="pl-pds">"</span></span> plugins<span class="pl-k">-</span>local</pre></div>
+<pre lang="powershell" class="notranslate"><code class="notranslate">mkdir D:\gitrepos
+git clone --bare "D:\McServer\...plugins" "D:\gitrepos\plugins.git"
+# 然后本地：
+git clone "ssh://Administrator@mc.5201314.vin:8307/D:/gitrepos/plugins.git" plugins-local
+</code></pre>
 <hr>
 <h2>九、结论</h2>
 <ul>
